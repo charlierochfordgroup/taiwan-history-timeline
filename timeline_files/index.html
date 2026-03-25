@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="./streamlit-component-lib.js"></script>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0e1117; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overflow: hidden; }
+
+    .tl-wrapper { position: relative; width: 100%; }
+
+    .tl-container {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        cursor: grab;
+    }
+    .tl-container:active { cursor: grabbing; }
+
+    .tl-container::-webkit-scrollbar { height: 4px; }
+    .tl-container::-webkit-scrollbar-track { background: #1a1e2a; border-radius: 2px; }
+    .tl-container::-webkit-scrollbar-thumb { background: #3a4050; border-radius: 2px; }
+    .tl-container::-webkit-scrollbar-thumb:hover { background: #4fc3f7; }
+
+    .tl-ribbon { display: flex; position: relative; }
+
+    .tl-era { position: relative; flex-shrink: 0; }
+
+    .tl-era-bg {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+    }
+    .tl-era-bar {
+        position: absolute;
+        left: 0; right: 0;
+        height: 2px;
+    }
+    .tl-era-name {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        white-space: nowrap;
+        opacity: 0.5;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+    .tl-date-label {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        font-size: 10px;
+        font-weight: 500;
+        white-space: nowrap;
+        letter-spacing: 0.3px;
+    }
+    .tl-era-dots {
+        position: absolute;
+        top: 28px;
+        left: 0; right: 0;
+        bottom: 32px;
+    }
+    .tl-dot {
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .tl-dot:hover {
+        transform: translate(-50%, -50%) scale(1.8);
+        box-shadow: 0 0 14px rgba(79, 195, 247, 0.7) !important;
+        z-index: 10;
+    }
+    .tl-tooltip {
+        display: none;
+        position: fixed;
+        background: #1a1e2aee;
+        color: #e0e0e0;
+        border: 1px solid #4fc3f7;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 12px;
+        max-width: 320px;
+        z-index: 1000;
+        pointer-events: none;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+    .tl-fade-left, .tl-fade-right {
+        position: absolute;
+        top: 0; bottom: 4px;
+        width: 30px;
+        pointer-events: none;
+        z-index: 5;
+    }
+    .tl-fade-left { left: 0; background: linear-gradient(to right, #0e1117, transparent); }
+    .tl-fade-right { right: 0; background: linear-gradient(to left, #0e1117, transparent); }
+</style>
+</head>
+<body>
+    <div class="tl-wrapper">
+        <div class="tl-fade-left"></div>
+        <div class="tl-fade-right"></div>
+        <div class="tl-container" id="tl-container">
+            <div class="tl-ribbon" id="tl-ribbon"></div>
+        </div>
+    </div>
+    <div class="tl-tooltip" id="tl-tooltip"></div>
+
+    <script>
+    const TOTAL_WIDTH = 6000;
+
+    function buildTimeline(segments, selectedId, height) {
+        const ribbon = document.getElementById('tl-ribbon');
+        const container = document.getElementById('tl-container');
+        ribbon.innerHTML = '';
+        ribbon.style.width = TOTAL_WIDTH + 'px';
+        ribbon.style.height = (height - 20) + 'px';
+
+        const barTop = Math.floor((height - 20) * 0.5);
+
+        segments.forEach(seg => {
+            const segWidth = Math.floor(TOTAL_WIDTH * seg.width_pct / 100);
+            const eraDiv = document.createElement('div');
+            eraDiv.className = 'tl-era';
+            eraDiv.style.width = segWidth + 'px';
+            eraDiv.style.height = '100%';
+
+            // Background
+            const bg = document.createElement('div');
+            bg.className = 'tl-era-bg';
+            bg.style.background = seg.color + '06';
+            bg.style.borderLeft = '1px solid ' + seg.color + '40';
+            eraDiv.appendChild(bg);
+
+            // Bar
+            const bar = document.createElement('div');
+            bar.className = 'tl-era-bar';
+            bar.style.top = barTop + 'px';
+            bar.style.background = seg.color + '30';
+            eraDiv.appendChild(bar);
+
+            // Era name
+            const name = document.createElement('div');
+            name.className = 'tl-era-name';
+            name.style.color = seg.color;
+            name.textContent = seg.era_label;
+            eraDiv.appendChild(name);
+
+            // Date label
+            const dateLabel = document.createElement('div');
+            dateLabel.className = 'tl-date-label';
+            dateLabel.style.color = seg.color + 'aa';
+            dateLabel.textContent = seg.date_label;
+            eraDiv.appendChild(dateLabel);
+
+            // Dots container
+            const dotsDiv = document.createElement('div');
+            dotsDiv.className = 'tl-era-dots';
+
+            seg.dots.forEach(dot => {
+                const d = document.createElement('div');
+                d.className = 'tl-dot';
+                d.dataset.id = dot.id;
+                d.setAttribute('title', dot.tooltip);
+
+                let size = dot.major ? 16 : 8;
+                let color = dot.major ? '#4fc3f7' : seg.color;
+                let opacity = dot.major ? '1' : '0.6';
+                let glow = dot.major ? 'box-shadow: 0 0 10px #4fc3f7;' : '';
+                let border = 'none';
+
+                if (dot.selected) {
+                    size = 20;
+                    opacity = '1';
+                    glow = 'box-shadow: 0 0 14px #fff;';
+                    border = '2px solid #fff';
+                }
+
+                d.style.cssText = `left:${dot.left}%;width:${size}px;height:${size}px;background:${color};border:${border};opacity:${opacity};${glow}`;
+                dotsDiv.appendChild(d);
+            });
+
+            eraDiv.appendChild(dotsDiv);
+            ribbon.appendChild(eraDiv);
+        });
+
+        setupInteractions();
+    }
+
+    function setupInteractions() {
+        const container = document.getElementById('tl-container');
+        const tooltip = document.getElementById('tl-tooltip');
+        let isDown = false, startX, scrollLeft, hasDragged = false;
+
+        container.onmousedown = (e) => {
+            if (e.target.classList.contains('tl-dot')) return;
+            isDown = true;
+            hasDragged = false;
+            startX = e.pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+        };
+        container.onmouseleave = () => { isDown = false; };
+        container.onmouseup = () => { isDown = false; };
+        container.onmousemove = (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            hasDragged = true;
+            const x = e.pageX - container.offsetLeft;
+            container.scrollLeft = scrollLeft - (x - startX) * 1.5;
+        };
+
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            container.scrollLeft += e.deltaY * 2;
+        }, { passive: false });
+
+        document.querySelectorAll('.tl-dot').forEach(dot => {
+            dot.addEventListener('mouseenter', () => {
+                tooltip.textContent = dot.getAttribute('title');
+                tooltip.style.display = 'block';
+            });
+            dot.addEventListener('mousemove', (e) => {
+                tooltip.style.left = (e.clientX + 14) + 'px';
+                tooltip.style.top = (e.clientY - 35) + 'px';
+            });
+            dot.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
+            });
+            dot.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const eventId = parseInt(dot.dataset.id);
+                // Send value back to Streamlit via the component API
+                Streamlit.setComponentValue(eventId);
+            });
+        });
+    }
+
+    function onRender(event) {
+        // Handle different possible data structures from Streamlit
+        const data = event.detail || {};
+        const args = data.args || data;
+        if (!args || !args.segments) return;
+        const {segments, selected_id, height} = args;
+        buildTimeline(segments, selected_id, height || 160);
+        Streamlit.setFrameHeight(height || 160);
+    }
+
+    Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
+    Streamlit.setComponentReady();
+    </script>
+</body>
+</html>
