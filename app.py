@@ -14,12 +14,7 @@ def _get_version() -> str:
             stderr=subprocess.DEVNULL,
             cwd=Path(__file__).parent,
         ).decode().strip()
-        short_hash = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"],
-            stderr=subprocess.DEVNULL,
-            cwd=Path(__file__).parent,
-        ).decode().strip()
-        return f"v1.{count} ({short_hash})"
+        return f"v1.{count}"
     except Exception:
         return "v1.0"
 
@@ -244,9 +239,9 @@ with col_detail:
             unsafe_allow_html=True,
         )
 
-# --- Version footer ---
+# --- Version footer (flows at bottom of page, not fixed overlay) ---
 st.markdown(
-    f'<div style="position:fixed;bottom:8px;left:12px;color:#3a4a5a;font-size:0.65rem;'
-    f'font-family:monospace;z-index:9999;opacity:0.7;">{_get_version()}</div>',
+    f'<div style="color:#3a4a5a;font-size:0.65rem;'
+    f'font-family:monospace;opacity:0.7;padding:24px 0 8px 4px;">{_get_version()}</div>',
     unsafe_allow_html=True,
 )
