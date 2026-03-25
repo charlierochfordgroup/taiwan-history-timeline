@@ -1,8 +1,27 @@
 """Taiwan History Timeline — Interactive Streamlit App."""
 
 import html as html_lib
+import subprocess
 import streamlit as st
 from pathlib import Path
+
+
+def _get_version() -> str:
+    """Derive version from git commit count (auto-increments on each push)."""
+    try:
+        count = subprocess.check_output(
+            ["git", "rev-list", "--count", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            cwd=Path(__file__).parent,
+        ).decode().strip()
+        short_hash = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            cwd=Path(__file__).parent,
+        ).decode().strip()
+        return f"v1.{count} ({short_hash})"
+    except Exception:
+        return "v1.0"
 
 from data_parser import parse_markdown, filter_events
 from timeline_component import render_timeline
@@ -224,3 +243,10 @@ with col_detail:
             '</p></div>',
             unsafe_allow_html=True,
         )
+
+# --- Version footer ---
+st.markdown(
+    f'<div style="position:fixed;bottom:8px;left:12px;color:#3a4a5a;font-size:0.65rem;'
+    f'font-family:monospace;z-index:9999;opacity:0.7;">{_get_version()}</div>',
+    unsafe_allow_html=True,
+)
