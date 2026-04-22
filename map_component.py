@@ -6,11 +6,13 @@ from streamlit_folium import st_folium
 from styles import get_era_color
 
 
-def build_map(events: list, selected_id: int = None) -> folium.Map:
-    """Build a dark-themed folium map of Taiwan with event markers."""
+def build_map(events: list, selected_id: int = None, country_config: dict = None) -> folium.Map:
+    """Build a dark-themed folium map with event markers."""
 
-    center_lat, center_lng = 23.7, 121.0
-    zoom = 7
+    cc = country_config or {}
+    center_lat = cc.get("center_lat", 23.7)
+    center_lng = cc.get("center_lng", 121.0)
+    zoom = cc.get("default_zoom", 7)
 
     if selected_id is not None:
         for e in events:
@@ -76,9 +78,9 @@ def build_map(events: list, selected_id: int = None) -> folium.Map:
     return m
 
 
-def render_map(events: list, selected_id: int = None, height: int = 450):
+def render_map(events: list, selected_id: int = None, height: int = 450, country_config: dict = None):
     """Render the folium map in Streamlit and return clicked event id or None."""
-    m = build_map(events, selected_id)
+    m = build_map(events, selected_id, country_config=country_config)
     map_data = st_folium(
         m,
         height=height,

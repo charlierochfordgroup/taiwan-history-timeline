@@ -1,74 +1,67 @@
-"""Dark theme CSS for the Taiwan Timeline Streamlit app."""
+"""Dark theme CSS for the History Timeline Streamlit app."""
 
 import streamlit as st
 
-# Era color palette — muted tones for dark theme
-ERA_COLORS = {
-    "Prehistory & Early Settlement": "#5a8a9a",
-    "Chinese Contact & Early Settlement": "#6a8a5a",
-    "Dutch & Spanish Colonial Period": "#c49a2a",
-    "Koxinga & the Kingdom of Tungning": "#b06040",
-    "Qing Dynasty Rule": "#7a5aaa",
-    "Republic of Formosa": "#2aaa7a",
-    "Japanese Colonial Rule": "#c04040",
-    "Return of Chinese Rule & the White Terror": "#707070",
-    "Democratisation": "#3a7abb",
-    "Modern Taiwan": "#40a870",
-}
-
-# Short era names for tags
-ERA_SHORT_NAMES = {
-    "Prehistory & Early Settlement": "Prehistory",
-    "Chinese Contact & Early Settlement (~230 AD \u2013 1620s)": "Early Chinese",
-    "Chinese Contact & Early Settlement": "Early Chinese",
-    "Dutch & Spanish Colonial Period (1624\u20131662)": "Dutch & Spanish",
-    "Dutch & Spanish Colonial Period": "Dutch & Spanish",
-    "Koxinga & the Kingdom of Tungning (1661\u20131683)": "Koxinga",
-    "Koxinga & the Kingdom of Tungning": "Koxinga",
-    "Qing Dynasty Rule (1683\u20131895)": "Qing Dynasty",
-    "Qing Dynasty Rule": "Qing Dynasty",
-    "Republic of Formosa (May\u2013October 1895)": "Rep. Formosa",
-    "Republic of Formosa": "Rep. Formosa",
-    "Japanese Colonial Rule (1895\u20131945)": "Japanese Rule",
-    "Japanese Colonial Rule": "Japanese Rule",
-    "Return of Chinese Rule & the White Terror (1945\u20131987)": "White Terror",
-    "Return of Chinese Rule & the White Terror": "White Terror",
-    "Democratisation (1971\u20132000)": "Democratisation",
-    "Democratisation": "Democratisation",
-    "Modern Taiwan (2000\u2013present)": "Modern",
-    "Modern Taiwan": "Modern",
-}
+# 15-colour palette for dynamically assigning era colours (dark-theme friendly)
+ERA_PALETTE = [
+    "#5a8a9a", "#6a8a5a", "#c49a2a", "#b06040", "#7a5aaa",
+    "#2aaa7a", "#c04040", "#707070", "#3a7abb", "#40a870",
+    "#aa5a8a", "#8a6a3a", "#5a5aaa", "#aa8a2a", "#3a8a8a",
+]
 
 CATEGORY_COLORS = {
     "Military": "#e05555",
     "Political": "#5588dd",
     "Economic": "#44bb77",
-    "Aboriginal": "#cc8844",
+    "Indigenous": "#cc8844",
+    "Aboriginal": "#cc8844",  # legacy alias
     "Foreign Relations": "#9966cc",
     "Cultural": "#dd6699",
+    "Social": "#55aacc",
+    "Scientific": "#88bb55",
+    "Religious": "#cc7744",
 }
+
+# --- Runtime era colour/name lookups (populated from DB data) ---
+
+_era_color_map: dict[str, str] = {}
+_era_short_map: dict[str, str] = {}
+
+
+def set_era_config(eras_config: list[dict]):
+    """Load era colours and short names from DB-provided eras config."""
+    global _era_color_map, _era_short_map
+    _era_color_map = {e["name"]: e.get("color", "#666666") for e in eras_config}
+    _era_short_map = {e["name"]: e.get("short_name", e["name"]) for e in eras_config}
+
+
+def assign_era_colors(n_eras: int) -> list[str]:
+    """Return a list of n distinct colours from the palette."""
+    return [ERA_PALETTE[i % len(ERA_PALETTE)] for i in range(n_eras)]
 
 
 def get_era_color(era_name: str) -> str:
-    """Get the color for an era, with fuzzy matching on partial names."""
-    for key, color in ERA_COLORS.items():
-        if key.lower() in era_name.lower() or era_name.lower() in key.lower():
-            return color
-    era_words = era_name.lower().split()
-    for key, color in ERA_COLORS.items():
-        for word in era_words:
-            if len(word) > 3 and word in key.lower():
+    """Look up era colour from runtime config."""
+    if _era_color_map:
+        if era_name in _era_color_map:
+            return _era_color_map[era_name]
+        # Fuzzy fallback
+        era_lower = era_name.lower()
+        for key, color in _era_color_map.items():
+            if key.lower() in era_lower or era_lower in key.lower():
                 return color
     return "#666666"
 
 
 def get_era_short(era_name: str) -> str:
-    """Get a short display name for an era."""
-    if era_name in ERA_SHORT_NAMES:
-        return ERA_SHORT_NAMES[era_name]
-    for key, short in ERA_SHORT_NAMES.items():
-        if key.lower() in era_name.lower() or era_name.lower() in key.lower():
-            return short
+    """Look up short era name from runtime config."""
+    if _era_short_map:
+        if era_name in _era_short_map:
+            return _era_short_map[era_name]
+        era_lower = era_name.lower()
+        for key, short in _era_short_map.items():
+            if key.lower() in era_lower or era_lower in key.lower():
+                return short
     return era_name
 
 
