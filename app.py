@@ -44,6 +44,17 @@ if "selected_id" not in st.session_state:
 if "country_name" not in st.session_state:
     st.session_state.country_name = ""
 
+# Run stuck-job recovery once per Streamlit process. Module-level flag survives
+# st.rerun() because the process doesn't restart. Streamlit Cloud / local
+# restarts kill daemon threads mid-job - this resets the rows so retry works.
+if "_recovery_ran" not in st.session_state:
+    try:
+        from worker import recover_stuck_jobs
+        recover_stuck_jobs()
+    except Exception:
+        pass  # Don't block app load on recovery failure
+    st.session_state._recovery_ran = True
+
 
 def select_event(eid: int):
     st.session_state.selected_id = eid
