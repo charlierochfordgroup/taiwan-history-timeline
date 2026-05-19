@@ -3,23 +3,26 @@
 Last updated: 2026-05-19
 Current branch: `master` (synced to GitHub `main`)
 GitHub: `charlierochfordgroup/chronoscape`
-Deployed (Streamlit Cloud): pending URL slug rename + secrets
+Deployed: `https://chronoscape.streamlit.app/` (live, chip-only Taiwan + Iceland)
 
 ---
 
 ## Outstanding
 
-### Streamlit Cloud finishing touches
+### Activating Phase 4 generation (when ready to spend on Anthropic API)
 
-- [ ] **Add Streamlit Cloud Secrets** in app Settings -> Secrets (TOML):
+The chip-only picker (v2.x) deliberately hides the free-text country input until Phase 4 generation is wired through Streamlit Cloud. All the code exists - just needs keys and a UI nudge. Steps when you're ready:
+
+- [ ] **Get an Anthropic API key** from https://console.anthropic.com/ and add `ANTHROPIC_API_KEY=sk-ant-...` to local `.env`.
+- [ ] **Add to Streamlit Cloud Secrets** (Option A architecture: in-process worker writes via service_role):
   ```toml
-  SUPABASE_URL = "https://xbhhdpcbrsgmactfuxlq.supabase.co"
-  SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIs... (anon key from local .env)"
+  SUPABASE_URL = "..."
+  SUPABASE_KEY = "..."  # anon, for reads
+  SUPABASE_SERVICE_ROLE_KEY = "..."  # required so worker.py can write
+  ANTHROPIC_API_KEY = "sk-ant-..."
   ```
-  Anon key only - the deployed app does reads only. Do NOT put `SUPABASE_SERVICE_ROLE_KEY` here yet - see Phase 4 architectural decision below.
-- [ ] **Rename Streamlit Cloud URL slug** to `chronoscape` (Settings -> General -> App URL). Old URL won't redirect.
-- [ ] **Verify deployed app** at `https://chronoscape.streamlit.app/` - type "Taiwan" and "Iceland", confirm both render.
-- [ ] **Tag v2.0 release** once deployed app verified working.
+- [ ] **Re-enable the free-text input in app.py** - search for "chip-only country picker" comment block and restore the `st.text_input` with `on_change=_on_country_change` callback. The generating/failed/retry branches are still in load logic, just unreachable from the chip-only UI.
+- [ ] **End-to-end test**: type "Japan" in `https://chronoscape.streamlit.app/`, wait 30-60s, verify timeline renders. Check the `generation_jobs` row for token counts and cost (~$0.25 expected per country).
 
 ### Phase 2 follow-ups from verification
 
@@ -33,19 +36,7 @@ Deployed (Streamlit Cloud): pending URL slug rename + secrets
 - [ ] Empty state / welcome screen on first load (already in app.py, but visually polish).
 - [ ] Country autocomplete from existing DB entries (`list_countries()` already in db.py, just wire it up).
 
-### Phase 4 - Data pipeline (code shipped, needs API key to test)
-
-- [ ] **Add `ANTHROPIC_API_KEY` to local `.env`.** Currently empty. Required for pipeline.py to run.
-- [ ] **Add `ANTHROPIC_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` to Streamlit Cloud Secrets** so the deployed app can generate new countries (Option A architecture - in-process worker writes via service_role).
-- [ ] End-to-end test once keys are in place: type "Japan" in chronoscape.streamlit.app, wait 30-60s, verify timeline renders. Check the generation_jobs row for token usage and cost.
-
-### Phase 4 architectural decision (resolve before merging Phase 4)
-
-The deployed Streamlit Cloud app currently uses the anon key (reads only - safe). When `worker.py` lands, writes are needed to create new countries and seed extracted data. Two paths:
-- **Option A**: put `SUPABASE_SERVICE_ROLE_KEY` in Streamlit Cloud Secrets and let the in-process worker write directly. Simple but the key sits on a hosted service.
-- **Option B (cleaner)**: move the worker out-of-band - e.g. a GitHub Actions workflow triggered by polling `countries.status='generating'` rows. Streamlit Cloud keeps anon-only.
-
-### Phase 5 - Polish
+### Phase 5 - Polish (after Phase 4 is activated)
 
 - [ ] Stale-data refresh logic: if `refreshed_at` > 14 days, serve stale + queue background refresh.
 - [ ] Cost tracking: populate `generation_jobs.input_tokens`, `output_tokens`, `cost_usd` after each pipeline run.
