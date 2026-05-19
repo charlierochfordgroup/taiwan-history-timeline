@@ -31,7 +31,7 @@ def _get_version() -> str:
 # --- Page config ---
 st.set_page_config(
     page_title="Chronoscape",
-    page_icon="🌍",
+    page_icon="🏛️",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -60,35 +60,19 @@ def select_event(eid: int):
     st.session_state.selected_id = eid
 
 
-# --- Country Search ---
-def _on_country_change():
-    st.session_state.selected_id = None
-
+# --- Country Selection (chip-only, no free-text input until Phase 4 generation is live) ---
 def _select_country(name: str):
     st.session_state.selected_id = None
-    st.session_state.country_input = name
+    st.session_state.country_name = name
 
-col_title, col_search_bar = st.columns([4, 6])
-with col_title:
-    st.markdown(
-        '<h1 style="margin:0;font-size:1.8rem;color:#f0f0f0;">Chronoscape</h1>',
-        unsafe_allow_html=True,
-    )
-with col_search_bar:
-    country_input = st.text_input(
-        "Country",
-        value=st.session_state.country_name,
-        placeholder="Type a country name (e.g. Taiwan, Japan, France)...",
-        label_visibility="collapsed",
-        on_change=_on_country_change,
-        key="country_input",
-    )
 
-country_name = country_input.strip()
-if country_name:
-    st.session_state.country_name = country_name
+# Title row
+st.markdown(
+    '<h1 style="margin:0;font-size:1.8rem;color:#f0f0f0;">Chronoscape</h1>',
+    unsafe_allow_html=True,
+)
 
-# --- Quick-select chips: existing ready countries from the DB ---
+# Country picker - chips for every country with status='ready'
 try:
     from db import list_countries
     _existing = list_countries()
@@ -99,18 +83,21 @@ if _existing:
     chip_cols = st.columns([1] + [1] * len(_existing) + [10])
     with chip_cols[0]:
         st.markdown(
-            '<span style="color:#5a6a7a;font-size:0.75rem;line-height:2.4;">Quick select:</span>',
+            '<span style="color:#5a6a7a;font-size:0.8rem;line-height:2.4;">Select country:</span>',
             unsafe_allow_html=True,
         )
     for i, c in enumerate(_existing):
         with chip_cols[i + 1]:
+            is_active = st.session_state.country_name.lower() == c["name_lower"]
             st.button(
                 c["name"],
                 key=f"chip_{c['name_lower']}",
                 on_click=_select_country,
                 args=(c["name"],),
-                type="tertiary",
+                type="primary" if is_active else "tertiary",
             )
+
+country_name = st.session_state.country_name.strip()
 
 # --- Load data for selected country ---
 all_events = []
@@ -143,16 +130,12 @@ if country_name:
                 generate_in_background(country_name)
                 st.rerun()
         else:
-            # Country not in DB — offer to generate
-            st.warning(f"No timeline found for **{country_name}**.")
-            if st.button(f"Generate timeline for {country_name}", type="primary"):
-                try:
-                    record = create_country(country_name)
-                    from worker import generate_in_background
-                    generate_in_background(country_name)
-                    st.rerun()
-                except Exception as ex:
-                    st.error(f"Error: {ex}")
+            # Country not in DB - unreachable via the chip picker but defensive
+            # against stale session-state (e.g. an old name still in cache).
+            # When Phase 4 generation is wired through Streamlit Cloud Secrets,
+            # restore the "Generate timeline" button here.
+            st.warning(f"No timeline found for **{country_name}**. Pick a country from the chips above.")
+            st.session_state.country_name = ""
     except Exception as ex:
         # DB not available — fall back to local Taiwan file
         if country_name.lower() == "taiwan":
@@ -169,10 +152,10 @@ else:
     # No country selected — show welcome
     st.markdown(
         '<div style="text-align:center;padding:120px 24px;">'
-        '<div style="font-size:3rem;margin-bottom:16px;">🌍</div>'
+        '<div style="font-size:3rem;margin-bottom:16px;">🏛️</div>'
         '<h2 style="color:#5a6a7a !important;">Explore History</h2>'
         '<p style="color:#4a5a6a;font-size:1rem;">'
-        'Type a country name above to explore its interactive historical timeline.'
+        'Choose a country above to explore its interactive historical timeline.'
         '</p></div>',
         unsafe_allow_html=True,
     )
@@ -357,7 +340,7 @@ if all_events and eras_config:
         else:
             st.markdown(
                 '<div class="detail-panel" style="text-align:center;padding:80px 24px;">'
-                '<div style="font-size:2.5rem;margin-bottom:12px;">🌍</div>'
+                '<div style="font-size:2.5rem;margin-bottom:12px;">🏛️</div>'
                 '<h2 style="color:#5a6a7a !important;">Select an event</h2>'
                 '<p style="color:#4a5a6a;font-size:0.9rem;">'
                 'Click an event in the list, a dot on the timeline, or a marker on the map.'
