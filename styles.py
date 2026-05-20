@@ -214,9 +214,55 @@ DARK_CSS = """
         color: #e0e0e0 !important;
     }
 
-    /* Hide Streamlit branding */
+    /* Hide Streamlit branding + top toolbar (Deploy button, status / accessibility chip) */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    header[data-testid="stHeader"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+
+    /* Chip-style country picker buttons.
+       Tertiary = inactive chip, primary = active chip.
+       Scoped via [kind] attribute so this doesn't touch other buttons
+       (e.g. "Retry generation" which uses the default secondary kind). */
+    .stButton button[kind="tertiary"],
+    .stButton button[kind="primary"] {
+        border-radius: 16px !important;
+        padding: 4px 16px !important;
+        font-size: 0.85rem !important;
+        min-height: 0 !important;
+        height: auto !important;
+        line-height: 1.4 !important;
+        box-shadow: none !important;
+        transition: background 0.15s, border-color 0.15s, color 0.15s !important;
+    }
+    .stButton button[kind="tertiary"] {
+        background: transparent !important;
+        color: #c0c8d0 !important;
+        border: 1px solid #2a3a4a !important;
+    }
+    .stButton button[kind="tertiary"]:hover {
+        border-color: #4fc3f7 !important;
+        color: #ffffff !important;
+        background: rgba(79, 195, 247, 0.08) !important;
+    }
+    .stButton button[kind="primary"] {
+        background: #4fc3f7 !important;
+        color: #0e1117 !important;
+        border: 1px solid #4fc3f7 !important;
+        font-weight: 600 !important;
+    }
+    .stButton button[kind="primary"]:hover {
+        background: #6dcef0 !important;
+        border-color: #6dcef0 !important;
+        color: #0e1117 !important;
+    }
+    .stButton button[kind="primary"]:focus,
+    .stButton button[kind="tertiary"]:focus {
+        box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.25) !important;
+        outline: none !important;
+    }
 
     /* Scrollbar styling */
     ::-webkit-scrollbar {

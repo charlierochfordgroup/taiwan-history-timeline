@@ -66,9 +66,13 @@ def _select_country(name: str):
     st.session_state.country_name = name
 
 
-# Title row
+# Title + tagline (single block so they read as one brand mark)
 st.markdown(
-    '<h1 style="margin:0;font-size:1.8rem;color:#f0f0f0;">Chronoscape</h1>',
+    '<div style="margin:0 0 22px 0;">'
+    '<h1 style="margin:0;font-size:1.9rem;color:#f0f0f0;line-height:1.15;">Chronoscape</h1>'
+    '<div style="color:#5a6a7a;font-size:0.85rem;margin-top:2px;">'
+    'Interactive timelines of world history'
+    '</div></div>',
     unsafe_allow_html=True,
 )
 
@@ -80,14 +84,15 @@ except Exception:
     _existing = []
 
 if _existing:
-    chip_cols = st.columns([1] + [1] * len(_existing) + [10])
-    with chip_cols[0]:
-        st.markdown(
-            '<span style="color:#5a6a7a;font-size:0.8rem;line-height:2.4;">Select country:</span>',
-            unsafe_allow_html=True,
-        )
+    # Small uppercase label sits above the chip row instead of inline next to it
+    st.markdown(
+        '<div style="color:#5a6a7a;font-size:0.7rem;letter-spacing:0.08em;'
+        'text-transform:uppercase;margin-bottom:6px;">Select country</div>',
+        unsafe_allow_html=True,
+    )
+    chip_cols = st.columns([1] * len(_existing) + [12])
     for i, c in enumerate(_existing):
-        with chip_cols[i + 1]:
+        with chip_cols[i]:
             is_active = st.session_state.country_name.lower() == c["name_lower"]
             st.button(
                 c["name"],
@@ -149,13 +154,16 @@ if country_name:
         else:
             st.error(f"Database unavailable: {ex}")
 else:
-    # No country selected — show welcome
+    # No country selected — show welcome (left-aligned to match the chip row above,
+    # tight padding so it sits just under the chips rather than floating mid-viewport)
     st.markdown(
-        '<div style="text-align:center;padding:120px 24px;">'
-        '<div style="font-size:3rem;margin-bottom:16px;">🏛️</div>'
-        '<h2 style="color:#5a6a7a !important;">Explore History</h2>'
-        '<p style="color:#4a5a6a;font-size:1rem;">'
-        'Choose a country above to explore its interactive historical timeline.'
+        '<div style="padding:36px 0 24px 0;max-width:560px;">'
+        '<div style="font-size:2.2rem;margin-bottom:10px;line-height:1;">🏛️</div>'
+        '<h2 style="color:#9aaab8 !important;margin:0 0 6px 0;font-size:1.35rem;">'
+        'Explore history'
+        '</h2>'
+        '<p style="color:#6a7a8a;font-size:0.9rem;margin:0;line-height:1.5;">'
+        'Pick a country above to open its interactive timeline.'
         '</p></div>',
         unsafe_allow_html=True,
     )
@@ -167,7 +175,7 @@ if all_events and eras_config:
     if eras_config:
         first_label = eras_config[0].get("date_label", "")
         last_era = eras_config[-1]
-        date_range = f"{first_label} — present"
+        date_range = f"{first_label} - present"
 
     display_name = country_config["name"] if country_config else country_name
     st.markdown(
