@@ -202,7 +202,7 @@ Three stages, orchestrated by `run_pipeline(country_name)`:
 ## 6. Git & Deployment
 
 ### Repository
-- Existing repo: `charlierochfordgroup/chronoscape` on GitHub (renamed from `taiwan-history-timeline` -> `country-timelines` -> `chronoscape` on 19/05/2026)
+- Existing repo: `charlie-tren/chronoscape` on GitHub (renamed from `taiwan-history-timeline` -> `country-timelines` -> `chronoscape` on 19/05/2026)
 - Streamlit Cloud auto-deploys from `master` branch (default branch on the repo)
 
 ### Branching Strategy

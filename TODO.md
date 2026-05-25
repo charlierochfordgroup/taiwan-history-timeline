@@ -2,7 +2,7 @@
 
 Last updated: 2026-05-19
 Current branch: `master` (GitHub default branch is also `master`; Streamlit Cloud deploys from master)
-GitHub: `charlierochfordgroup/chronoscape`
+GitHub: `charlie-tren/chronoscape`
 Deployed: `https://chronoscape.streamlit.app/` (live, chip-only Taiwan + Iceland)
 
 ---
